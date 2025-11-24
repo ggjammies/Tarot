@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarot Card Reference Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        /* Custom Theme Colors */
+        .tarot-bg { background-color: #0f172a; } /* Dark Blue/Slate */
+        .tarot-card-bg { background-color: #141d2e; } /* SLIGHTLY DARKER for better contrast */
+        .tarot-text { color: #ffffff; } /* PURE WHITE for maximum contrast */
+        .tarot-accent { color: #a855f7; } /* Primary Purple */
+        .tarot-border { border-color: #4c1d95; } /* Darker Purple for borders */
+        .tarot-shadow { box-shadow: 0 10px 15px -3px rgba(168, 85, 247, 0.3), 0 4px 6px -2px rgba(168, 85, 247, 0.1); }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+        }
+
+        /* --- Card Styles (Now static) --- */
+        .reading-card {
+            min-height: 150px;
+            transition: transform 0.3s;
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            line-height: 1;
+            transition: transform 0.6s;
+        }
+        .reversed {
+            transform: rotate(180deg);
+        }
+        /* --- End Static Card Style --- */
+
+        /* Modal specific styling */
+        .modal-overlay {
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.open {
+            visibility: visible;
+            opacity: 1;
+        }
+        .modal-content {
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+        }
+        .modal-overlay.open .modal-content {
+            transform: scale(1);
+        }
+        
+        /* Toast Notification */
+        #toast-notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #4c1d95;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            opacity: 0;
+            transition: opacity 0.5s, transform 0.5s;
+            transform: translateY(100%);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 60;
+        }
+        #toast-notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Specific element styles for layouts */
+        #reading-area.grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        #reading-area.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+        #reading-area.grid-cols-10 { 
+            grid-template-columns: repeat(5, minmax(0, 1fr)); 
+            gap: 1rem 0.5rem;
+        }
+        
+        /* Learning Mode Specific Styles for better readability in grid */
+        .learning-mode-card {
+            min-height: 200px;
+            text-align: left;
+            padding: 1rem;
+        }
+        
+        @media (min-width: 1024px) { /* lg breakpoint - reduce grid size for learning view */
+             #card-grid.learning-mode {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+        @media (min-width: 768px) and (max-width: 1023px) { /* md breakpoint */
+            #card-grid.learning-mode {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        @media (max-width: 767px) { /* Mobile layout for Learning View */
+            #card-grid.learning-mode {
+                grid-template-columns: repeat(1, minmax(0, 1fr));
+            }
+        }
+
+        /* Celtic Cross positioning fixes */
+        @media (min-width: 768px) { /* md breakpoint */
+            #reading-area.grid-cols-10 {
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+            }
+            /* Positions 3, 4, 5, 6 form the surrounding arm */
+            #reading-area.grid-cols-10 > div:nth-child(3) { grid-column: 2; grid-row: 3; } /* Below 1 */
+            #reading-area.grid-cols-10 > div:nth-child(4) { grid-column: 1; grid-row: 2; } /* Left of 1 */
+            #reading-area.grid-cols-10 > div:nth-child(5) { grid-column: 2; grid-row: 1; } /* Above 1 */
+            #reading-area.grid-cols-10 > div:nth-child(6) { grid-column: 3; grid-row: 2; } /* Right of 1 */
+            /* Positions 7-10 stack on the right staff */
+            #reading-area.grid-cols-10 > div:nth-child(7) { grid-column: 5; grid-row: 4; }
+            #reading-area.grid-cols-10 > div:nth-child(8) { grid-column: 5; grid-row: 3; }
+            #reading-area.grid-cols-10 > div:nth-child(9) { grid-column: 5; grid-row: 2; }
+            #reading-area.grid-cols-10 > div:nth-child(10) { grid-column: 5; grid-row: 1; }
+            /* Hide the default mobile stacking rule */
+            #reading-area.grid-cols-10 > div:nth-child(5n+1) { grid-column: auto; margin-bottom: 0; }
+            
+            /* Define 5 columns (3 for cross, 1 space, 1 for staff) and 4 rows */
+            #reading-area.grid-cols-10 {
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+                grid-template-rows: repeat(4, auto);
+                gap: 1rem;
+            }
+            /* Central Cross position overrides */
+            #reading-area.grid-cols-10 > div:nth-child(1) { grid-column: 2; grid-row: 2; } 
+            #reading-area.grid-cols-10 > div:nth-child(2) { 
+                grid-column: 2; 
+                grid-row: 2; 
+                transform: rotate(90deg) scale(0.9); /* Crossing card */
+                z-index: 10;
+            } 
+        }
+        @media (max-width: 767px) { /* Mobile layout for Celtic Cross */
+            #reading-area.grid-cols-10 {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+            /* Simplified placement for mobile for readability */
+            #reading-area.grid-cols-10 > div:nth-child(1) { grid-column: span 3; } /* 1. Present */
+            #reading-area.grid-cols-10 > div:nth-child(2) { grid-column: span 3; } /* 2. Challenge */
+            #reading-area.grid-cols-10 > div:nth-child(3) { grid-column: span 3; } /* 3. Foundation */
+            #reading-area.grid-cols-10 > div:nth-child(4) { grid-column: span 3; } /* 4. Past */
+            #reading-area.grid-cols-10 > div:nth-child(5) { grid-column: span 3; } /* 5. Hopes/Fears */
+            #reading-area.grid-cols-10 > div:nth-child(6) { grid-column: span 3; } /* 6. Future */
+            #reading-area.grid-cols-10 > div:nth-child(7) { grid-column: span 3; } /* 7. Self */
+            #reading-area.grid-cols-10 > div:nth-child(8) { grid-column: span 3; } /* 8. Environment */
+            #reading-area.grid-cols-10 > div:nth-child(9) { grid-column: span 3; } /* 9. Hopes/Fears */
+            #reading-area.grid-cols-10 > div:nth-child(10) { grid-column: span 3; } /* 10. Outcome */
+        }
+
+    </style>
+</head>
+<body class="tarot-bg flex items-start justify-center p-4 sm:p-6">
+
+    <!-- Main Content Card -->
+    <div class="tarot-text w-full max-w-6xl mt-4 sm:mt-8">
+        <!-- Header -->
+        <div class="text-center mb-8 p-4 sm:p-6 rounded-2xl border-4 tarot-border bg-gray-900/50 tarot-shadow">
+            <h1 class="text-3xl sm:text-4xl font-extrabold tarot-accent">GG's Arcana Decoder</h1>
+            <p class="text-sm sm:text-lg italic text-gray-400 mt-2">Browse the deck or draw a spread below.</p>
+        </div>
+
+        <!-- Reading Tool Section -->
+        <div class="mb-10 p-4 sm:p-6 rounded-2xl border-4 tarot-border bg-gray-900/50 tarot-shadow">
+            <h2 class="text-xl sm:text-2xl font-bold mb-4 border-b border-purple-700 pb-2">
+                Reading Tool Options
+            </h2>
+            
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 mb-6">
+                <!-- Reading Type Selection -->
+                <div class="flex-1 w-full sm:w-auto">
+                    <label for="spread-type" class="block text-sm font-medium text-gray-300 mb-1">Select Spread Type:</label>
+                    <select id="spread-type" class="w-full p-2 rounded-lg bg-gray-700/50 border border-gray-600 text-white">
+                        <option value="one">Daily Guidance (1 Card)</option>
+                        <option value="three">Past, Present, Future (3 Cards)</option>
+                        <option value="celtic">Celtic Cross (10 Cards - Advanced)</option>
+                    </select>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex space-x-3 flex-shrink-0 w-full sm:w-auto justify-end">
+                    <button 
+                        id="save-reading-btn"
+                        onclick="saveCurrentReading()" 
+                        class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-semibold rounded-lg transition-colors shadow-md shadow-gray-500/50 disabled:opacity-50"
+                        disabled
+                    >
+                        Save Reading 💾
+                    </button>
+                    <!-- Removed Reveal All Button -->
+                    <button 
+                        onclick="drawSpread()" 
+                        class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors shadow-md shadow-purple-500/50"
+                    >
+                        Draw Your Spread 🔮
+                    </button>
+                </div>
+            </div>
+
+            <!-- Reading Area (Dynamically Sized) -->
+            <div id="reading-area" class="grid gap-4 text-center">
+                <!-- Cards will be dynamically loaded here -->
+            </div>
+            
+            <p id="reading-instructions" class="text-center text-gray-500 italic mt-4">Select a spread type and click 'Draw' to begin.</p>
+            
+            <!-- NEW: Collapsible Spread Guide -->
+            <div class="mt-6 border-t border-purple-700 pt-4">
+                <button 
+                    id="toggle-guide-btn" 
+                    onclick="toggleSpreadGuide()"
+                    class="w-full text-left p-3 rounded-xl bg-gray-700/50 hover:bg-gray-600 font-semibold flex justify-between items-center transition-colors"
+                >
+                    <span>Spread Guide & Position Meanings</span>
+                    <span id="guide-toggle-icon">▼</span>
+                </button>
+                
+                <div id="spread-guide-content" class="mt-3 p-4 bg-gray-800/50 rounded-xl hidden space-y-4">
+                    <!-- Content populated by JavaScript -->
+                </div>
+            </div>
+            <!-- END NEW: Collapsible Spread Guide -->
+
+        </div>
+        
+        <!-- Saved Readings Section -->
+        <div class="mb-10 p-4 sm:p-6 rounded-2xl border-4 tarot-border bg-gray-900/50 tarot-shadow">
+            <h2 class="text-xl sm:text-2xl font-bold mb-4 border-b border-purple-700 pb-2">
+                Saved Readings (Local Storage)
+            </h2>
+            <div id="saved-readings-list" class="space-y-3">
+                <p id="no-readings-msg" class="text-gray-500 italic">No readings saved locally yet. Draw a spread and click 'Save Reading'!</p>
+            </div>
+        </div>
+
+
+        <!-- Search Input -->
+        <h2 class="text-xl sm:text-2xl font-bold mb-4 border-b border-purple-700 pb-2">Deck Index & Search</h2>
+        
+        <!-- NEW: Learning Mode and Search Container -->
+        <div class="mb-8 flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
+             <button 
+                id="learning-mode-toggle"
+                onclick="toggleLearningMode()" 
+                class="flex-shrink-0 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-xl transition-colors shadow-md shadow-gray-500/50 text-sm sm:text-base"
+             >
+                Toggle Learning View 📚 (Off)
+            </button>
+            <input
+                type="text"
+                id="card-search"
+                placeholder="Search card name, element, suit, number, or court rank"
+                class="w-full p-3 rounded-xl bg-gray-700/50 border border-gray-600 text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                oninput="filterCards(event.target.value)"
+            />
+        </div>
+
+        <!-- Card Grid -->
+        <div id="card-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <!-- Cards will be rendered here -->
+        </div>
+
+        <!-- Status Message -->
+        <p id="status-message" class="text-center text-gray-500 italic mt-8">
+            All 78 cards are available. Start searching!
+        </p>
+    </div>
+
+    <!-- Card Detail Modal (Hidden by Default) -->
+    <div id="card-modal" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-70">
+        <div id="modal-content" class="modal-content w-full max-w-xl tarot-card-bg p-8 rounded-2xl tarot-shadow relative">
+            <button onclick="closeDetails()" class="absolute top-3 right-3 text-gray-400 hover:text-red-400 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24:24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y1="18"></line></svg>
+            </button>
+            <div class="text-center mb-4">
+                <p id="modal-card-icon" class="card-icon mb-2"></p>
+                <h3 id="modal-card-title" class="text-3xl font-extrabold tarot-accent"></h3>
+                <p id="modal-card-keywords" class="text-md italic text-gray-400 mt-1"></p>
+            </div>
+
+            <div class="space-y-6">
+                <!-- Elemental/Numeric Context (text-gray-200 added here for contrast fix) -->
+                <div id="modal-context-info" class="p-3 bg-gray-800 rounded-lg text-sm text-center border border-purple-700/50 text-gray-200 hidden"></div>
+                
+                <!-- Contextual Reading Message (Displays position if drawn from a spread) -->
+                <p id="modal-reading-context" class="text-center text-base italic text-purple-300 border-b border-purple-700/50 pb-2"></p>
+                
+                <!-- Upright Meaning -->
+                <div>
+                    <h4 class="text-xl font-bold mb-2 text-green-400 border-b border-green-400/50 pb-1">Upright Meaning:</h4>
+                    <p id="modal-upright-meaning" class="text-gray-300"></p>
+                </div>
+
+                <!-- Reversed Meaning -->
+                <div>
+                    <h4 class="text-xl font-bold mb-2 text-red-400 border-b border-red-400/50 pb-1">Reversed Meaning:</h4>
+                    <p id="modal-reversed-meaning" class="text-gray-300"></p>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+    <!-- Toast Notification Element -->
+    <div id="toast-notification"></div>
+
+    <script>
+        
+        // --- GLOBAL DATA & CONSTANTS ---
+        
+        let currentSpread = [];
+        let currentSpreadType = 'one'; // Store the current spread type globally
+        let isLearningMode = false; // NEW: State for the learning mode toggle
+        const SAVED_READINGS_KEY = 'tarot_saved_readings';
+        const readingArea = document.getElementById('reading-area');
+        
+        // Definition of spread position labels
+        const SPREAD_DEFINITIONS = {
+            'one': ["Focus"],
+            'three': ["Past Situation", "Present Focus", "Future Potential"],
+            'celtic': [
+                "1. Present (What Covers You)", "2. Challenge (What Crosses You)", "3. Foundation (What's Beneath You)", 
+                "4. Past (What's Behind You)", "5. Hopes & Fears (What Crowns You)", "6. Future (What's Before You)", 
+                "7. Self (Your Attitude)", "8. Environment (External Factors)", "9. Hopes & Fears (Inner Desires)", "10. Outcome (The Final Result)"
+            ]
+        };
+
+        // Generic meanings for Minor Arcana ranks and numbers (NEW CONTEXT)
+        const MINOR_RANK_CONTEXT = {
+            'Ace': 'New beginnings, pure potential, opportunity.',
+            'Two': 'Balance, partnership, dualities, choice.',
+            'Three': 'Creation, initial growth, collaboration, expression.',
+            'Four': 'Stability, structure, foundation, consolidation.',
+            'Five': 'Conflict, loss, instability, challenge.',
+            'Six': 'Harmony, resolution, generosity, reward.',
+            'Seven': 'Evaluation, retreat, illusion, patience.',
+            'Eight': 'Action, movement, competence, effort.',
+            'Nine': 'Fulfillment, peak emotion/material state, near completion.',
+            'Ten': 'Completion, heavy burden, end of cycle, finality.',
+            'Page': 'Messages, new ideas, student, child-like energy.',
+            'Knight': 'Action, movement, intensity, drive.',
+            'Queen': 'Nurturing, mastery of the element, inner wisdom, emotional intelligence.',
+            'King': 'Control, authority, material power, successful leadership.'
+        };
+        
+        // Mapping of Minor Arcana rank words to their digit equivalent for searching (NEW for search fix)
+        const MINOR_RANK_TO_DIGIT = {
+            'Ace': '1', 'Two': '2', 'Three': '3', 'Four': '4', 'Five': '5',
+            'Six': '6', 'Seven': '7', 'Eight': '8', 'Nine': '9', 'Ten': '10',
+        };
+
+        // Mapping of Major Arcana ID to its written number word
+        const MAJOR_ID_TO_WORD = {
+            0: 'zero', 1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five',
+            6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten', 11: 'eleven',
+            12: 'twelve', 13: 'thirteen', 14: 'fourteen', 15: 'fifteen',
+            16: 'sixteen', 17: 'seventeen', 18: 'eighteen', 19: 'nineteen',
+            20: 'twenty', 21: 'twenty one'
+        };
+
+        // Helper function to extract rank details from a Minor Arcana name
+        const getMinorArcanaRank = (cardName) => {
+            const parts = cardName.split(' of ');
+            return parts[0];
+        };
+        
+        // Helper function to find a card object by its name
+        const findCardByName = (name) => {
+            // Find both "Card Name" and "Card Name (Reversed)"
+            return CARDS.find(c => c.name === name || (name.endsWith('(Reversed)') && c.name === name.replace(' (Reversed)', '')));
+        };
+
+        // --- Card Data ---
+        const CARDS = [
+            // --- MAJOR ARCANA (0-21) ---
+            { id: 0, name: "The Fool", arcana: "Major", icon: "🤹", keywords: "Beginnings, innocence, spontaneity, free spirit", upright: "A new journey begins, full of optimism and a sense of wonder. Embrace the unknown and step forward with faith.", reversed: "Recklessness, feeling held back, risk-taking without considering consequences, immaturity." },
+            { id: 1, name: "The Magician", arcana: "Major", icon: "🪄", keywords: "Manifestation, resourcefulness, power, inspired action", upright: "You have all the tools and resources you need to succeed. It's time to take action and create your reality.", reversed: "Manipulation, dormant talent, poor planning, using skills for selfish purposes." },
+            { id: 2, name: "The High Priestess", arcana: "Major", icon: "🧘‍♀️", keywords: "Intuition, mystery, unconscious, inner voice", upright: "Trust your inner wisdom and intuition. Seek knowledge from within and pay attention to dreams and symbols.", reversed: "Secrets being revealed, lack of personal mystery, ignoring your intuition or inner voice." },
+            { id: 3, name: "The Empress", arcana: "Major", icon: "👑", keywords: "Femininity, beauty, nature, nurturing, abundance", upright: "Connection to nature, fertility, domestic stability. A time of creation and comfortable, sensory enjoyment.", reversed: "Creative block, dependence on others, infertility, neglecting self-care or finances." },
+            { id: 4, name: "The Emperor", arcana: "Major", icon: "🏛️", keywords: "Authority, structure, control, father figure", upright: "Represents leadership, discipline, and establishing order. Focus on strategy, power, and building stability.", reversed: "Domination, excessive control, rigidity, immaturity or lack of discipline." },
+            { id: 5, name: "The Hierophant", arcana: "Major", icon: "📜", keywords: "Tradition, conformity, morality, spiritual guidance", upright: "Seeking guidance from established institutions or tradition. Learning, teaching, or following conventional practices.", reversed: "Rebellion, non-conformity, challenging the status quo, restrictive or outdated beliefs." },
+            { id: 6, name: "The Lovers", arcana: "Major", icon: "💖", keywords: "Union, choices, harmony, relationships, values alignment", upright: "A choice between two paths, or perfect harmony and a strong connection in a relationship. Alignment of values.", reversed: "Disharmony, misalignment of values, imbalance in a relationship, a poor or difficult choice." },
+            { id: 7, name: "The Chariot", arcana: "Major", icon: "🛡️", keywords: "Control, willpower, victory, determination, momentum", upright: "Victory and success achieved through focus, control, and determination. Moving forward despite obstacles.", reversed: "Lack of control, direction, or self-discipline. Blocked by outside forces or a loss of motivation." },
+            { id: 8, name: "Strength", arcana: "Major", icon: "🦁", keywords: "Courage, compassion, inner strength, confidence", upright: "Taming inner beasts through gentle, patient confidence. Inner power and quiet courage to face challenges.", reversed: "Self-doubt, weakness, low energy, a misuse of power, feeling overwhelmed." },
+            { id: 9, name: "The Hermit", arcana: "Major", icon: "🔦", keywords: "Introspection, solitude, inner guidance, searching", upright: "A need for withdrawal and self-reflection. Seeking truth and wisdom alone, acting as a guide for others.", reversed: "Loneliness, social isolation, withdrawal, being overly dependent on the guidance of others." },
+            { id: 10, name: "Wheel of Fortune", arcana: "Major", icon: "☸️", keywords: "Change, cycles, destiny, turning points, inevitable fate", upright: "A major change is coming, usually for the better. Luck, cycles of life, and destiny are at play.", reversed: "Bad luck, resisting change, a sudden downturn, feeling out of control of your life's path." },
+            { id: 11, name: "Justice", arcana: "Major", icon: "⚖️", keywords: "Fairness, truth, law, cause and effect, objectivity", upright: "Legal matters, ethical choices, and fairness. Results based on past actions, a need for honesty.", reversed: "Injustice, dishonesty, avoiding accountability, legal difficulties, unfair judgment." },
+            { id: 12, name: "The Hanged Man", arcana: "Major", icon: "🔄", keywords: "Pause, surrender, new perspective, sacrifice", upright: "Seeing things from a completely different angle. Suspension of action, sacrifice for a greater gain, acceptance.", reversed: "Stalling, fear of sacrifice, martyrdom, refusing to change perspective, procrastination." },
+            { id: 13, name: "Death", arcana: "Major", icon: "💀", keywords: "Endings, transformation, transition, profound change (not literal death)", upright: "The end of a major phase, clearing space for new growth. Necessary transformation and release.", reversed: "Resistance to change, being stuck in the past, stagnation, fear of necessary endings." },
+            { id: 14, name: "Temperance", arcana: "Major", icon: "💧", keywords: "Balance, moderation, patience, purpose, mixing and blending", upright: "Finding harmony by combining different elements. Self-control, patience, and purpose-driven action.", reversed: "Imbalance, excess, going to extremes, lack of harmony, clashing differences." },
+            { id: 15, name: "The Devil", arcana: "Major", icon: "😈", keywords: "Bondage, materialism, shadow self, addiction, limitations", upright: "Feeling trapped by negative thoughts, attachments, or addictions. Recognizing your own power to break free.", reversed: "Breaking free from bondage, detachment, overcoming addiction, reclaiming control." },
+            { id: 16, name: "The Tower", arcana: "Major", icon: "💥", keywords: "Sudden change, destruction, chaos, revelation, collapse", upright: "Unexpected, dramatic upheaval. Necessary destruction of old structures to clear the way for truth.", reversed: "Averting disaster, fear of change, resisting a necessary collapse, delayed suffering." },
+            { id: 17, name: "The Star", arcana: "Major", icon: "✨", keywords: "Hope, inspiration, spiritual connection, renewal, serenity", upright: "A period of peace and spiritual healing. Clarity, inspiration, and renewed hope for the future.", reversed: "Hopelessness, lack of faith, feeling uninspired, disconnecting from your spirit." },
+            { id: 18, name: "The Moon", arcana: "Major", icon: "🌙", keywords: "Illusion, fear, anxiety, subconscious, intuition", upright: "Confusion, uncertainty, and things being hidden or unclear. Trusting intuition over logic in the dark.", reversed: "Releasing fear, confusion clearing, unpleasant truths revealed, gaining clarity." },
+            { id: 19, name: "The Sun", arcana: "Major", icon: "☀️", keywords: "Joy, success, celebration, vitality, optimism, truth", upright: "The most positive card. Enlightenment, pure happiness, success, and a brilliant time in life.", reversed: "Lack of clarity, sadness, temporary depression, overly optimistic or arrogant behavior." },
+            { id: 20, name: "Judgement", arcana: "Major", icon: "🎺", keywords: "Calling, rebirth, inner voice, absolution, assessment", upright: "A time of self-evaluation and profound realization. Being called to a higher path, making a major life decision.", reversed: "Self-doubt, refusal to self-examine, ignoring the call, feeling judged unfairly." },
+            { id: 21, name: "The World", arcana: "Major", icon: "🌍", keywords: "Completion, accomplishment, travel, fulfillment, perfect ending", upright: "Successful conclusion to a major cycle, complete harmony, ultimate fulfillment, sense of belonging.", reversed: "Incomplete success, lack of closure, shortcuts, being stuck at the finish line." },
+
+            // --- MINOR ARCANA - WANDS (FIRE) (22-35) ---
+            { id: 22, name: "Ace of Wands", arcana: "Wands (Fire)", icon: "🔥", keywords: "Inspiration, potential, creation, drive", upright: "A burst of creative energy, a new venture or passion project, the courage to begin.", reversed: "Delay, lack of motivation, creative block, missed opportunity." },
+            { id: 23, name: "Two of Wands", arcana: "Wands (Fire)", icon: "🗺️", keywords: "Planning, decisions, future focus", upright: "Making plans for the future, looking outward, partnership in achievement, personal power.", reversed: "Fear of the unknown, lacking a plan, resistance to change, impatience." },
+            { id: 24, name: "Three of Wands", arcana: "Wands (Fire)", icon: "⛵", keywords: "Expansion, foresight, waiting", upright: "Success is in sight; your ships are coming in. Waiting patiently for the payoff from initial efforts.", reversed: "Delays, unexpected obstacles, returning to old habits, lack of travel." },
+            { id: 25, name: "Four of Wands", arcana: "Wands (Fire)", icon: "🎉", keywords: "Celebration, harmony, homecoming", upright: "Completion of a phase, a joyful, stable home environment, gathering with loved ones, celebration.", reversed: "Instability, broken harmony, transition period, finding no comfort in 'home'." },
+            { id: 26, name: "Five of Wands", arcana: "Wands (Fire)", icon: "🤼", keywords: "Conflict, competition, difference", upright: "Minor disagreements, healthy competition that drives progress, a clash of creative ideas.", reversed: "Avoiding conflict, fear of failure, seeking conformity, internal conflict resolved." },
+            { id: 27, name: "Six of Wands", arcana: "Wands (Fire)", icon: "🥇", keywords: "Victory, success, public recognition", upright: "Triumph after effort, being hailed as a leader, public praise, confidence and self-assurance.", reversed: "Egotism, failed plans, lack of recognition, walking away from conflict." },
+            { id: 28, name: "Seven of Wands", arcana: "Wands (Fire)", icon: "🧗", keywords: "Courage, defense, standing firm", upright: "Holding your ground against opposition, fighting for your position, defending your beliefs.", reversed: "Giving up, overwhelmed, weakness, being intimidated by competitors." },
+            { id: 29, name: "Eight of Wands", arcana: "Wands (Fire)", icon: "✈️", keywords: "Speed, movement, fast-paced change", upright: "Events moving quickly, travel, rush to the finish line, communications arriving rapidly.", reversed: "Delays, frustration, missed connections, slow progress, jealousy." },
+            { id: 30, name: "Nine of Wands", arcana: "Wands (Fire)", icon: "🩹", keywords: "Resilience, persistence, inner strength", upright: "Final obstacles before success, guardedness, standing your ground, having learned from past battles.", reversed: "Paranoia, defensiveness, exhausting the fight, weak internal boundaries." },
+            { id: 31, name: "Ten of Wands", arcana: "Wands (Fire)", icon: "🏋️", keywords: "Burden, responsibility, heavy load", upright: "Taking on too much, feeling overwhelmed by duties, needing to delegate or release some load.", reversed: "Dropping the burden, delegation, lightened load, avoidance of responsibility." },
+            { id: 32, name: "Page of Wands", arcana: "Wands (Fire)", icon: "📣", keywords: "Inspiration, discovery, free spirit", upright: "Exciting news, the start of a creative project, a message about a new passion, eager enthusiasm.", reversed: "Bad news, feeling immature, hesitation, lack of commitment to an idea." },
+            { id: 33, name: "Knight of Wands", arcana: "Wands (Fire)", icon: "🐎", keywords: "Action, adventure, impulsiveness", upright: "Rushing into things, a passionate pursuit, dynamic action and high energy, possible lack of tact.", reversed: "Haste, recklessness, impatience, unfinished business, delays in travel." },
+            { id: 34, name: "Queen of Wands", arcana: "Wands (Fire)", icon: "💐", keywords: "Courage, determination, vibrant energy", upright: "Magnetic, confident, passionate. Focused on career and creation, a friendly and warm leader.", reversed: "Selfishness, jealousy, quick temper, demanding attention, over-the-top drama." },
+            { id: 35, name: "King of Wands", arcana: "Wands (Fire)", icon: "👨‍💼", keywords: "Natural leader, vision, entrepreneur", upright: "Visionary leadership, a successful businessman, strong sense of purpose, integrity and drive.", reversed: "Tyranny, ruthless pursuit of goals, impatience, demanding loyalty, impracticality." },
+
+            // --- MINOR ARCANA - CUPS (WATER) (36-49) ---
+            { id: 36, name: "Ace of Cups", arcana: "Cups (Water)", icon: "❤️", keywords: "New emotional start, intuition, love, emotion", upright: "Overflowing happiness, deep emotional fulfillment, new relationship, conception.", reversed: "Blocked emotions, emotional void, repression, relationship souring, sadness." },
+            { id: 37, name: "Two of Cups", arcana: "Cups (Water)", icon: "🤝", keywords: "Partnership, harmony, mutual love", upright: "Union, true love, bonding, perfect emotional balance, engagement or marriage.", reversed: "Conflict, imbalance, break-up, lack of harmony in a relationship, misunderstanding." },
+            { id: 38, name: "Three of Cups", arcana: "Cups (Water)", icon: "🥂", keywords: "Celebration, friendship, community", upright: "Gathering with friends, joyful celebration, successful group effort, fertility.", reversed: "Gossip, isolation, overindulgence, cancelled celebration, betrayal of trust." },
+            { id: 39, name: "Four of Cups", arcana: "Cups (Water)", icon: "😒", keywords: "Apathy, boredom, discontent", upright: "Feeling bored or unmotivated, ignoring opportunities offered, emotional retreat, sulking.", reversed: "New opportunities, accepting invitations, finding new excitement, change of mood." },
+            { id: 40, name: "Five of Cups", arcana: "Cups (Water)", icon: "🥀", keywords: "Loss, grief, regret, disappointment", upright: "Focusing on what is lost, wallowing in sadness, feeling abandoned, selective vision of loss.", reversed: "Moving on, acceptance, finding the positive, reconciliation, hope returning." },
+            { id: 41, name: "Six of Cups", arcana: "Cups (Water)", icon: "🏠", keywords: "Nostalgia, innocence, childhood", upright: "Fond memories, revisiting the past, reunion with old friends, gifts given/received.", reversed: "Living in the past, inability to let go, moving forward, independence, future focus." },
+            { id: 42, name: "Seven of Cups", arcana: "Cups (Water)", icon: "💭", keywords: "Choices, illusion, fantasy, wishful thinking", upright: "Too many options, confusion over which dream to pursue, needing to ground fantasies in reality.", reversed: "Clarity of purpose, choosing one path, will-power, realization of a delusion." },
+            { id: 43, name: "Eight of Cups", arcana: "Cups (Water)", icon: "🚶", keywords: "Abandonment, transition, searching", upright: "Walking away from an unfulfilling situation, seeking a deeper meaning, emotional transition, spiritual quest.", reversed: "Fear of leaving, walking in circles, avoiding change, clinging to the familiar." },
+            { id: 44, name: "Nine of Cups", arcana: "Cups (Water)", icon: "😊", keywords: "Satisfaction, wish fulfillment, comfort", upright: "Emotional contentment, all your emotional wishes granted, enjoying luxuries, self-satisfaction.", reversed: "Dissatisfaction, greed, smugness, wishes delayed, lack of inner joy." },
+            { id: 45, name: "Ten of Cups", arcana: "Cups (Water)", icon: "🌈", keywords: "Divine alignment, joy, happiness, family", upright: "Complete emotional fulfillment, lasting joy, happy home life, deep sense of well-being.", reversed: "Broken family, emotional loss, disharmony at home, failed relationships, conflict." },
+            { id: 46, name: "Page of Cups", arcana: "Cups (Water)", icon: "💧", keywords: "Emotional news, romantic offers, creativity", upright: "A sensitive message, a poetic or romantic proposal, a new creative or spiritual opportunity.", reversed: "Emotional immaturity, sensitivity, bad news, creative stagnation, hidden truth." },
+            { id: 47, name: "Knight of Cups", arcana: "Cups (Water)", icon: "💘", keywords: "Romance, charm, proposal, idealism", upright: "A romantic, sensitive person or proposal arriving. Following one's heart, being swept away by feelings.", reversed: "Moodiness, fantasy, disappointment, being misled by charm, emotional instability." },
+            { id: 48, name: "Queen of Cups", arcana: "Cups (Water)", icon: "🦢", keywords: "Compassion, intuition, emotional security", upright: "A deeply empathetic and intuitive person. Calm and artistic, offering unconditional love and emotional balance.", reversed: "Emotional overdependence, insecurity, martyrdom, dramatic displays, manipulation." },
+            { id: 49, name: "King of Cups", arcana: "Cups (Water)", icon: "👨‍⚖️", keywords: "Emotional control, diplomacy, compassion", upright: "Balanced emotional power, wise counsel, diplomatic strength, calm authority over feelings.", reversed: "Emotional abuse, moodiness, manipulation, self-pity, letting feelings overwhelm reason." },
+
+            // --- MINOR ARCANA - SWORDS (AIR) (50-63) ---
+            { id: 50, name: "Ace of Swords", arcana: "Swords (Air)", icon: "💡", keywords: "Clarity, breakthrough, truth, intellect", upright: "A clear decision, mental breakthrough, sharp mind, cutting through confusion, finding the truth.", reversed: "Confusion, misuse of power, mental block, chaos, lack of ethical consideration." },
+            { id: 51, name: "Two of Swords", arcana: "Swords (Air)", icon: "🙈", keywords: "Indecision, stalemate, avoidance", upright: "Blocking out truth, refusal to see both sides, needing to make a difficult choice, emotional retreat.", reversed: "Releasing the block, clarity returning, choice made (perhaps reluctantly), overwhelm." },
+            { id: 52, name: "Three of Swords", arcana: "Swords (Air)", icon: "💔", keywords: "Heartbreak, separation, grief, sorrow", upright: "Emotional pain, rejection, betrayal, realizing a painful truth. Necessary grief and loss.", reversed: "Healing, recovery from loss, suppressing pain, isolation, long-term sadness." },
+            { id: 53, name: "Four of Swords", arcana: "Swords (Air)", icon: "🛌", keywords: "Rest, recuperation, contemplation, peace", upright: "Time out from the battle, mental peace, necessary retreat to recover, meditation.", reversed: "Restlessness, burnout, re-entry to the world, mental exhaustion, fear of rest." },
+            { id: 54, name: "Five of Swords", arcana: "Swords (Air)", icon: "😠", keywords: "Conflict, defeat, winning at all costs", upright: "Pyrrhic victory, shame, loss of honor, selfish victory, conflict that leaves everyone damaged.", reversed: "Reconciliation, letting go of a grudge, seeking resolution, moving on from the fight." },
+            { id: 55, name: "Six of Swords", arcana: "Swords (Air)", icon: "🚢", keywords: "Transition, moving on, travel, healing", upright: "Leaving troubled waters behind, physical or emotional move, transition to a better future, quiet progress.", reversed: "Stagnation, inability to leave, difficulty moving on, feeling stuck in place." },
+            { id: 56, name: "Seven of Swords", arcana: "Swords (Air)", icon: "🏃", keywords: "Deception, theft, sneaking, getting away", upright: "Acting sneakily, avoiding responsibility, running away from confrontation, self-deception.", reversed: "Confessing, taking responsibility, return of property, truth comes out, recognizing a flaw." },
+            { id: 57, name: "Eight of Swords", arcana: "Swords (Air)", icon: "🔗", keywords: "Restriction, victim mentality, self-imposed limitation", upright: "Feeling trapped or powerless, often by one's own fears or mindset. Self-imprisonment.", reversed: "Releasing restrictions, clarity, finding freedom, seeing a way out, self-acceptance." },
+            { id: 58, name: "Nine of Swords", arcana: "Swords (Air)", icon: "😨", keywords: "Anxiety, worry, nightmares, fear", upright: "Sleepless nights, intense worry, feelings of guilt or shame, fear that is worse than the reality.", reversed: "Hope, acceptance of the worst, realizing worries are baseless, facing deep fears." },
+            { id: 59, name: "Ten of Swords", arcana: "Swords (Air)", icon: "🗡️", keywords: "Painful endings, backstabbing, victimhood", upright: "The worst is over, hitting rock bottom, betrayal, finality of a painful situation.", reversed: "Recovery, surviving the worst, regeneration, imminent improvement." },
+            { id: 60, name: "Page of Swords", arcana: "Swords (Air)", icon: "💬", keywords: "Curiosity, directness, mental energy", upright: "New ideas and intellectual energy, speaking your mind, youthful zeal, seeking truth openly.", reversed: "All talk and no action, gossip, speaking without thinking, defensive communication." },
+            { id: 61, name: "Knight of Swords", arcana: "Swords (Air)", icon: "🤺", keywords: "Ambition, rush, impulsive action, intensity", upright: "Charging forward fiercely, highly ambitious and driven, but often reckless or inconsiderate.", reversed: "Haste, aggression, lack of direction, failing due to impatience, chaos." },
+            { id: 62, name: "Queen of Swords", arcana: "Swords (Air)", icon: "🧠", keywords: "Sharp mind, independent, honest, focused", upright: "Intelligent, clear-thinking, and honest. Uses intellect rather than emotion, often single or independent.", reversed: "Emotional coldness, overly critical, ruthless, manipulation, bitterness." },
+            { id: 63, name: "King of Swords", arcana: "Swords (Air)", icon: "👨‍🎓", keywords: "Intellectual power, authority, truth, objectivity", upright: "A fair judge, an intellectual leader, high ethics, a powerful mind capable of cutting through confusion.", reversed: "Cruelty, misuse of authority, bias, over-analyzing, emotional distance, coldness." },
+
+            // --- MINOR ARCANA - PENTACLES (EARTH) (64-77) ---
+            { id: 64, name: "Ace of Pentacles", arcana: "Pentacles (Earth)", icon: "💎", keywords: "Opportunity, prosperity, new beginning, material", upright: "A new financial opportunity, material success, grounded beginning, starting a business.", reversed: "Lost opportunity, financial delays, poor investment, insecurity, missed chance." },
+            { id: 65, name: "Two of Pentacles", arcana: "Pentacles (Earth)", icon: "♻️", keywords: "Balance, prioritizing, juggling, adaptability", upright: "Juggling resources, needing to prioritize, finding flexibility in financial decisions, adapting to change.", reversed: "Imbalance, mismanagement, overwhelmed by juggling duties, reckless financial choices." },
+            { id: 66, name: "Three of Pentacles", arcana: "Pentacles (Earth)", icon: "🏗️", keywords: "Teamwork, collaboration, mastery, building", upright: "Working effectively with others, recognition for skill, planning and execution phase of a project.", reversed: "Disorganization, poor teamwork, shoddy work, lack of attention to detail, mediocrity." },
+            { id: 67, name: "Four of Pentacles", arcana: "Pentacles (Earth)", icon: "🔒", keywords: "Security, stability, possessiveness, control", upright: "Holding onto money, focusing on material security, potentially being greedy or resistant to spending.", reversed: "Generosity, releasing control, financial freedom, spending recklessly, material loss." },
+            { id: 68, name: "Five of Pentacles", arcana: "Pentacles (Earth)", icon: "🥶", keywords: "Lack, worry, poverty, isolation, insecurity", upright: "Feeling left out or financially insecure, worry about material needs, being excluded from a community.", reversed: "Recovery from loss, finding support, spiritual poverty ending, improvement in finances." },
+            { id: 69, name: "Six of Pentacles", arcana: "Pentacles (Earth)", icon: "⚖️", keywords: "Generosity, charity, giving and receiving, wealth", upright: "Sharing resources, charity, balance in giving and receiving, being rewarded for good deeds.", reversed: "Debt, unequal exchanges, selfishness, relying on handouts, extortion." },
+            { id: 70, name: "Seven of Pentacles", arcana: "Pentacles (Earth)", icon: "🧺", keywords: "Investment, patience, waiting for reward, assessment", upright: "Waiting for results from long-term work, assessment of current investment, needing patience.", reversed: "Impatience, lack of vision, risky investments, feeling unrewarded, giving up too soon." },
+            { id: 71, name: "Eight of Pentacles", arcana: "Pentacles (Earth)", icon: "🛠️", keywords: "Apprenticeship, diligence, focus, skill", upright: "Mastering a craft, focused effort, working diligently, improving skills through hard work.", reversed: "Lack of ambition, perfectionism, poor quality work, being a workaholic, lack of effort." },
+            { id: 72, name: "Nine of Pentacles", arcana: "Pentacles (Earth)", icon: "🍇", keywords: "Luxury, self-sufficiency, financial independence", upright: "Enjoying the fruits of your labor, refinement, financial security earned through hard work.", reversed: "Overspending, loneliness, unexpected financial setback, self-worth tied to possessions." },
+            { id: 73, name: "Ten of Pentacles", arcana: "Pentacles (Earth)", icon: "👨‍👩‍👧‍👦", keywords: "Wealth, legacy, family, solid foundations", upright: "Financial and emotional stability, passing down an inheritance, established community, lasting success.", reversed: "Family arguments, financial failure, breaking traditions, loss of inheritance." },
+            { id: 74, name: "Page of Pentacles", arcana: "Pentacles (Earth)", icon: "🌱", keywords: "New goal, inspiration, focused study, financial start", upright: "News regarding money or career, beginning a new area of study, grounded and practical offer.", reversed: "Missed opportunity, lack of focus, poor grades, bad news about money, daydreaming." },
+            { id: 75, name: "Knight of Pentacles", arcana: "Pentacles (Earth)", icon: "🐌", keywords: "Efficiency, reliability, patience, slow progress", upright: "Slow but steady progress, a reliable worker, focused on practical outcomes, cautious action.", reversed: "Laziness, boredom, stagnation, neglecting duties, tunnel vision, slowness." },
+            { id: 76, name: "Queen of Pentacles", arcana: "Pentacles (Earth)", icon: "👩‍🌾", keywords: "Nurturing, practical, secure, motherly", upright: "A grounded, supportive person, focused on home and family security, good with money and domestic matters.", reversed: "Material over-focus, neglecting family for work, possessiveness, financially unstable." },
+            { id: 77, name: "King of Pentacles", arcana: "Pentacles (Earth)", icon: "🏦", keywords: "Abundance, success, security, traditional wealth", upright: "Financial mastery, highly successful entrepreneur, generous and dependable, traditional authority.", reversed: "Greed, excessive control, materialism, mismanaging money, using wealth to control others." },
+        ];
+        // --- End Card Data ---
+
+
+        // --- DOM Elements ---
+        const cardGrid = document.getElementById('card-grid');
+        const statusMessage = document.getElementById('status-message');
+        const modal = document.getElementById('card-modal');
+        const modalContent = document.getElementById('modal-content');
+        const modalIcon = document.getElementById('modal-card-icon');
+        const modalTitle = document.getElementById('modal-card-title');
+        const modalKeywords = document.getElementById('modal-card-keywords');
+        const modalUpright = document.getElementById('modal-upright-meaning');
+        const modalReversed = document.getElementById('modal-reversed-meaning');
+        const modalReadingContext = document.getElementById('modal-reading-context');
+        const modalContextInfo = document.getElementById('modal-context-info');
+        const saveReadingBtn = document.getElementById('save-reading-btn');
+        const savedReadingsList = document.getElementById('saved-readings-list');
+        const noReadingsMsg = document.getElementById('no-readings-msg');
+        const spreadTypeSelector = document.getElementById('spread-type');
+        const learningModeToggle = document.getElementById('learning-mode-toggle');
+        
+        // NEW: Spread Guide Elements
+        const spreadGuideContent = document.getElementById('spread-guide-content');
+        const guideToggleIcon = document.getElementById('guide-toggle-icon');
+
+        // Utility function for showing temporary feedback (replacing the need for alerts)
+        const showToast = (message, duration = 3000) => {
+            const toast = document.getElementById('toast-notification');
+            toast.textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, duration);
+        };
+        
+        // NEW: Toggle function for Learning Mode
+        const toggleLearningMode = () => {
+            isLearningMode = !isLearningMode;
+            
+            // Update button text and color
+            if (isLearningMode) {
+                learningModeToggle.textContent = 'Toggle Learning View 📚 (On)';
+                learningModeToggle.classList.replace('bg-gray-700', 'bg-purple-600');
+                learningModeToggle.classList.replace('shadow-gray-500/50', 'shadow-purple-500/50');
+                cardGrid.classList.add('learning-mode');
+                showToast("Learning View is ON: Expanded card meanings for study.", 3000);
+            } else {
+                learningModeToggle.textContent = 'Toggle Learning View 📚 (Off)';
+                learningModeToggle.classList.replace('bg-purple-600', 'bg-gray-700');
+                learningModeToggle.classList.replace('shadow-purple-500/50', 'shadow-gray-500/50');
+                cardGrid.classList.remove('learning-mode');
+                showToast("Learning View is OFF: Compact card view restored.", 3000);
+            }
+            
+            // Re-render the cards with the current search filter applied
+            const searchTerm = document.getElementById('card-search').value;
+            filterCards(searchTerm);
+        };
+
+
+        // --- Card Index and Display Logic ---
+
+        // Helper function to render a card item
+        const createCardElement = (card) => {
+            const element = document.createElement('div');
+            let indicatorClass = 'text-gray-400';
+            let elementName = '';
+            
+            // Determine color and element name
+            if (card.arcana.includes("Wands")) { indicatorClass = 'text-orange-400'; elementName = 'Fire'; }
+            else if (card.arcana.includes("Cups")) { indicatorClass = 'text-blue-400'; elementName = 'Water'; }
+            else if (card.arcana.includes("Swords")) { indicatorClass = 'text-red-400'; elementName = 'Air'; }
+            else if (card.arcana.includes("Pentacles")) { indicatorClass = 'text-green-400'; elementName = 'Earth'; }
+            
+            element.onclick = () => showCardDetails(card.name);
+            
+            const arcanaLabel = card.arcana === 'Major' ? card.arcana.toUpperCase() : `${card.arcana.split(' ')[0].toUpperCase()} (${elementName})`;
+
+            // Conditional rendering based on learning mode
+            if (isLearningMode) {
+                element.className = 'tarot-card-bg learning-mode-card rounded-xl shadow-lg cursor-pointer hover:bg-gray-700/70 transition-all duration-300 transform hover:scale-[1.02] border tarot-border';
+                
+                let contextHtml = '';
+                if (card.arcana.includes('Minor')) {
+                    const rank = getMinorArcanaRank(card.name);
+                    const rankContext = MINOR_RANK_CONTEXT[rank] || '';
+                    contextHtml = `
+                        <p class="text-xs font-bold text-purple-300 mt-1 mb-1 leading-tight">
+                            ${rank.toUpperCase()} Context: <span class="font-normal text-gray-400">${rankContext}</span>
+                        </p>
+                    `;
+                }
+
+                element.innerHTML = `
+                    <div class="flex items-center space-x-3 mb-2">
+                        <p class="text-4xl">${card.icon}</p>
+                        <div>
+                            <p class="text-sm font-light ${indicatorClass}">${arcanaLabel}</p>
+                            <p class="text-xl font-bold tarot-accent leading-tight">${card.name}</p>
+                        </div>
+                    </div>
+                    ${contextHtml}
+                    <div class="border-t border-gray-700 pt-2 mt-2">
+                        <p class="text-xs font-semibold text-white mb-1">Core Keywords:</p>
+                        <p class="text-sm text-gray-300 italic">${card.keywords}</p>
+                    </div>
+                `;
+
+            } else {
+                // Default compact mode
+                element.className = 'tarot-card-bg p-4 rounded-xl shadow-md cursor-pointer hover:bg-gray-700/70 transition-all duration-300 transform hover:scale-105 border tarot-border text-center';
+                element.innerHTML = `
+                    <p class="text-3xl mb-1">${card.icon}</p>
+                    <p class="text-xs font-light ${indicatorClass} mb-1">${arcanaLabel}</p>
+                    <p class="text-lg font-semibold tarot-accent leading-tight">${card.name}</p>
+                `;
+            }
+            return element;
+        };
+
+        // Render the filtered list of cards
+        const renderCardList = (filteredCards = CARDS, searchTerm = '') => {
+            cardGrid.innerHTML = '';
+            const lowerCaseSearch = searchTerm.toLowerCase().trim();
+            
+            // Set the grid columns based on learning mode
+            if (isLearningMode) {
+                 // The CSS handles responsive columns for 'learning-mode'
+            } else {
+                 cardGrid.className = 'grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6';
+            }
+
+
+            if (filteredCards.length === 0) {
+                statusMessage.textContent = `No cards found matching "${searchTerm}".`;
+                return;
+            }
+
+            statusMessage.textContent = `Displaying ${filteredCards.length} of 78 cards.`;
+
+            // If the search term is active, or if we are in learning mode, just render a single continuous grid.
+            if (lowerCaseSearch !== '' || isLearningMode) {
+                filteredCards.forEach(card => cardGrid.appendChild(createCardElement(card)));
+                return;
+            }
+
+            // Original logic for displaying the full deck, separated by Arcana headers
+            const appendSection = (title, cards) => {
+                if (cards.length > 0) {
+                    const sectionHeader = document.createElement('h2');
+                    sectionHeader.className = 'col-span-full text-center text-3xl font-bold tarot-accent mt-8 mb-4 border-b-2 border-gray-700 pb-2';
+                    sectionHeader.textContent = title;
+                    cardGrid.appendChild(sectionHeader);
+                    cards.forEach(card => cardGrid.appendChild(createCardElement(card)));
+                }
+            };
+            
+            // Major Arcana Section
+            const major = filteredCards.filter(c => c.arcana === "Major");
+            appendSection('Major Arcana (0 - XXI)', major);
+
+            // Minor Arcana Sections (with Elements)
+            const minorArcanaSuits = [
+                "Wands (Fire)",
+                "Cups (Water)",
+                "Swords (Air)",
+                "Pentacles (Earth)"
+            ];
+
+            minorArcanaSuits.forEach(fullSuitName => {
+                const suitCards = filteredCards.filter(c => c.arcana === fullSuitName);
+                if (suitCards.length > 0) {
+                    const [suit, element] = fullSuitName.split(' ');
+                    appendSection(`${suit} Arcana: ${element.replace(/[\(\)]/g, '')}`, suitCards);
+                }
+            });
+        };
+
+        const filterCards = (searchTerm) => {
+            const lowerCaseSearch = searchTerm.toLowerCase().trim();
+
+            if (lowerCaseSearch === '') {
+                renderCardList(CARDS);
+                return;
+            }
+
+            const filtered = CARDS.filter(card => {
+                const lowerCaseName = card.name.toLowerCase();
+                let isMatch = (
+                    // 1. Name, Keywords, Suit Match
+                    lowerCaseName.includes(lowerCaseSearch) ||
+                    card.keywords.toLowerCase().includes(lowerCaseSearch) ||
+                    card.arcana.toLowerCase().includes(lowerCaseSearch) 
+                );
+
+                // 2. Check for number/rank search
+                if (!isMatch) {
+                    if (card.arcana === 'Major') {
+                        // Major Arcana: Match by ID number string ('13') or ID word ('thirteen')
+                        const majorArcanaWord = MAJOR_ID_TO_WORD[card.id];
+                        if (
+                            card.id.toString() === lowerCaseSearch || // e.g., '13' matches The Death (13)
+                            (majorArcanaWord && majorArcanaWord.includes(lowerCaseSearch)) // e.g., 'thirteen' matches The Death
+                        ) {
+                            isMatch = true;
+                        }
+                    } else { 
+                        // Minor Arcana: Match by Rank word ('page', 'ten', 'ace') or Rank digit ('1', '10')
+                        const rank = getMinorArcanaRank(card.name);
+                        
+                        // Check if the rank word matches the search term (e.g., search 'ten' matches 'Ten')
+                        if (rank.toLowerCase().includes(lowerCaseSearch)) { 
+                            isMatch = true;
+                        }
+                        
+                        // Check if the rank digit matches the search term (e.g., search '10' matches 'Ten')
+                        const rankDigit = MINOR_RANK_TO_DIGIT[rank];
+                        if (rankDigit === lowerCaseSearch) { 
+                            isMatch = true; 
+                        }
+                    }
+                }
+                
+                return isMatch;
+            });
+
+            renderCardList(filtered, lowerCaseSearch);
+        };
+        
+        // Show the detail modal for a specific card from the index (upright by default)
+        const showCardDetails = (cardName) => {
+            const card = findCardByName(cardName);
+            if (!card) return;
+            
+            renderModalContent(card, false, "This is the standard index reference for this card.");
+
+            modal.classList.add('open');
+            modalContent.focus();
+        };
+
+        // Helper function for Roman Numerals
+        function getRomanNumeral(num) {
+            const roman = {
+                21: 'XXI', 20: 'XX', 19: 'XIX', 18: 'XVIII', 17: 'XVII', 16: 'XVI',
+                15: 'XV', 14: 'XIV', 13: 'XIII', 12: 'XII', 11: 'XI', 10: 'X',
+                9: 'IX', 8: 'VIII', 7: 'VII', 6: 'VI', 5: 'V', 4: 'IV', 3: 'III', 2: 'II', 1: 'I'
+            };
+            return roman[num] || num.toString();
+        }
+
+        // Renders all the content in the modal, used by both Index and Reading views
+        const renderModalContent = (card, isReversed, contextMessage) => {
+            modalIcon.classList.remove('reversed'); // Reset rotation
+            modalReadingContext.textContent = contextMessage;
+            modalContextInfo.innerHTML = ''; // Clear context info
+            
+            // Hide the context info section by default, only show for Minor Arcana
+            modalContextInfo.classList.add('hidden'); 
+
+            const idDisplay = card.arcana.includes('Major') ? (card.id === 0 ? '0' : getRomanNumeral(card.id)) : '';
+            
+            let titleText = `${card.name} ${idDisplay ? '(' + idDisplay + ')' : ''}`;
+            let keywordText = card.keywords;
+            
+            if (isReversed) {
+                modalIcon.classList.add('reversed');
+                titleText += ' (REVERSED)';
+                keywordText = `REVERSED - ${keywordText}`;
+            }
+
+            modalIcon.textContent = card.icon;
+            modalTitle.textContent = titleText;
+            modalKeywords.textContent = keywordText;
+            
+            // Generate Minor Arcana Context Info
+            if (card.arcana.includes('Minor')) {
+                const [suit, element] = card.arcana.split(' ');
+                const rank = getMinorArcanaRank(card.name);
+                const rankContext = MINOR_RANK_CONTEXT[rank] || '';
+
+                const elementalColor = 
+                    card.arcana.includes("Wands") ? 'text-orange-300' :
+                    card.arcana.includes("Cups") ? 'text-blue-300' :
+                    card.arcana.includes("Swords") ? 'text-red-300' :
+                    'text-green-300';
+                
+                // Show the context box for Minor Arcana only
+                modalContextInfo.classList.remove('hidden'); 
+                modalContextInfo.innerHTML = `
+                    <span class="font-bold">Suit: ${suit}</span> 
+                    (<span class="${elementalColor} font-extrabold">${element.replace(/[\(\)]/g, '')}</span>) — 
+                    <span class="italic">${rankContext}</span>
+                `;
+            }
+
+            // Highlight the relevant meaning
+            // FIX: Increased opacity and used a slightly lighter text-gray-300 for better contrast on "Not Active" text.
+            if (isReversed) {
+                modalUpright.innerHTML = `(Upright Meaning - Not Active): <span class="opacity-70 text-gray-300">${card.upright}</span>`;
+                modalReversed.innerHTML = `(Reversed Meaning - Active): <span class="font-bold text-white">${card.reversed}</span>`;
+            } else {
+                modalUpright.innerHTML = `(Upright Meaning - Active): <span class="font-bold text-white">${card.upright}</span>`;
+                modalReversed.innerHTML = `(Reversed Meaning - Not Active): <span class="opacity-70 text-gray-300">${card.reversed}</span>`;
+            }
+        }
+
+        // Close the detail modal
+        const closeDetails = () => {
+            modal.classList.remove('open');
+        };
+        
+        // --- READING LOGIC ---
+
+        // Function to draw a spread based on the selected type
+        const drawSpread = () => {
+            const spreadType = spreadTypeSelector.value;
+            currentSpreadType = spreadType; // Update global spread type
+            const positions = SPREAD_DEFINITIONS[spreadType];
+            const deck = [...CARDS];
+            currentSpread = [];
+            
+            if (!positions) return showToast("Invalid spread type selected.");
+
+            for (let i = 0; i < positions.length; i++) {
+                const cardIndex = Math.floor(Math.random() * deck.length);
+                const drawnCard = deck.splice(cardIndex, 1)[0]; 
+                const isReversed = Math.random() < 0.5;
+
+                currentSpread.push({
+                    card: drawnCard,
+                    position: positions[i],
+                    isReversed: isReversed,
+                });
+            }
+
+            displaySpread(currentSpread, spreadType);
+            saveReadingBtn.disabled = false;
+        };
+
+        // Function to display the drawn cards in the UI (INSTANTLY REVEALED)
+        const displaySpread = (spread = currentSpread, spreadType = spreadTypeSelector.value) => {
+             if (spread.length === 0) return;
+             
+             // 1. Set the grid layout based on the spread type
+             readingArea.className = 'grid gap-4 text-center'; // Reset classes
+             if (spreadType === 'one') {
+                readingArea.classList.add('grid-cols-1', 'max-w-xs', 'mx-auto');
+             } else if (spreadType === 'three') {
+                readingArea.classList.add('grid-cols-3');
+             } else if (spreadType === 'celtic') {
+                readingArea.classList.add('grid-cols-10'); // Custom class for Celtic Cross layout
+             }
+
+             // 2. Render Card Faces
+             readingArea.innerHTML = '';
+
+             spread.forEach((spreadItem, index) => {
+                const cardContainer = document.createElement('div');
+                cardContainer.className = 'reading-card flex flex-col justify-between items-center p-2 tarot-card-bg rounded-xl shadow-lg border tarot-border cursor-pointer hover:bg-gray-700/70 transition-colors';
+                
+                // Click event now directly shows details
+                cardContainer.onclick = () => showReadingDetails(index);
+
+                let positionLabelClass = 'text-xl font-bold tarot-accent mb-2';
+                if (spreadType === 'celtic') { positionLabelClass = 'text-base font-bold tarot-accent mt-1 mb-1 leading-tight'; }
+
+                // Directly render the card face content
+                cardContainer.innerHTML = `
+                    <p class="${positionLabelClass} w-full">${spreadItem.position}</p>
+                    <div class="flex flex-col items-center justify-center p-2 h-full w-full">
+                        <p class="text-xl font-semibold tarot-text mb-1">${spreadItem.card.name}${spreadItem.isReversed ? ' (R)' : ''}</p>
+                        <p class="card-icon text-5xl my-2 ${spreadItem.isReversed ? 'reversed' : ''}">${spreadItem.card.icon}</p>
+                        <!-- Used tarot-text (now pure white) instead of text-gray-400 for best visibility -->
+                        <span class="text-sm font-light tarot-text opacity-80">${spreadItem.card.arcana.split(' ')[0]}</span>
+                    </div>
+                `;
+                readingArea.appendChild(cardContainer);
+            });
+            document.getElementById('reading-instructions').textContent = "Cards are drawn and instantly revealed. Click any card to view its meaning.";
+            showToast(`Drawn a ${spread.length} card spread. Click cards for details.`, 3000);
+        };
+        
+        // Show the detail modal for a card drawn in the reading
+        const showReadingDetails = (index) => {
+            if (currentSpread.length === 0) return; 
+
+            const spreadItem = currentSpread[index];
+            const card = spreadItem.card;
+            
+            if (!card) return showToast("Error loading card data for detail view.");
+
+            const contextMessage = `This card was drawn for the **"${spreadItem.position}"** position in your **${currentSpreadType.toUpperCase()}** spread.`;
+            
+            renderModalContent(card, spreadItem.isReversed, contextMessage);
+            
+            modal.classList.add('open');
+            modalContent.focus();
+        }
+        
+        // --- SPREAD GUIDE LOGIC (NEW) ---
+        
+        const populateSpreadGuide = () => {
+            let guideHtml = '';
+
+            for (const [key, positions] of Object.entries(SPREAD_DEFINITIONS)) {
+                let title;
+                let description;
+
+                if (key === 'one') {
+                    title = 'Daily Guidance (1 Card)';
+                    description = 'A quick way to get focused insight for the day or a specific question.';
+                } else if (key === 'three') {
+                    title = 'Past, Present, Future (3 Cards)';
+                    description = 'A simple linear spread for understanding the progression of a situation.';
+                } else if (key === 'celtic') {
+                    title = 'Celtic Cross (10 Cards)';
+                    description = 'An in-depth, traditional spread for comprehensive situational analysis and final outcome prediction.';
+                }
+
+                guideHtml += `
+                    <div class="border p-3 rounded-lg border-purple-800 bg-gray-900">
+                        <h3 class="text-xl font-bold tarot-accent mb-2">${title}</h3>
+                        <p class="text-gray-400 mb-3 italic text-sm">${description}</p>
+                        <div class="space-y-1">
+                            <p class="font-semibold text-white">Positions:</p>
+                            <ul class="list-disc pl-5 text-gray-300 text-sm">
+                `;
+
+                positions.forEach(position => {
+                    guideHtml += `<li>${position}</li>`;
+                });
+
+                guideHtml += `
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+
+            spreadGuideContent.innerHTML = guideHtml;
+        };
+        
+        const toggleSpreadGuide = () => {
+            const isHidden = spreadGuideContent.classList.toggle('hidden');
+            guideToggleIcon.textContent = isHidden ? '▼' : '▲';
+            
+            if (!isHidden) {
+                 showToast("Spread Guide Expanded.", 2000);
+            }
+        };
+
+
+        // --- LOCAL STORAGE PERSISTENCE FUNCTIONS ---
+        
+        // Loads all saved readings from localStorage
+        const loadSavedReadings = () => {
+            const data = localStorage.getItem(SAVED_READINGS_KEY);
+            return data ? JSON.parse(data) : [];
+        };
+
+        // Renders the list of saved readings to the UI
+        const renderSavedReadings = () => {
+            const savedReadings = loadSavedReadings();
+            savedReadingsList.innerHTML = ''; 
+
+            if (savedReadings.length === 0) {
+                noReadingsMsg.classList.remove('hidden');
+                savedReadingsList.appendChild(noReadingsMsg);
+                return;
+            }
+
+            noReadingsMsg.classList.add('hidden');
+            
+            savedReadings.reverse().forEach((reading, index) => {
+                const originalIndex = savedReadings.length - 1 - index;
+                const date = new Date(reading.timestamp).toLocaleString();
+                
+                const readingElement = document.createElement('div');
+                readingElement.className = 'flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-lg bg-gray-700/50 border border-gray-600 hover:bg-gray-700 transition-colors space-y-2 sm:space-y-0';
+                
+                // Truncate the title to fit one line
+                const title = reading.spread.map(item => {
+                    const card = findCardByName(item.cardName);
+                    return `${card ? card.icon : '❓'} ${item.isReversed ? 'R' : 'U'}`;
+                }).slice(0, 10).join(' '); // Limit icons for display
+
+                readingElement.innerHTML = `
+                    <div class="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 w-full">
+                        <span class="font-semibold tarot-accent w-full sm:w-1/3 truncate">${reading.type.toUpperCase()} Spread: ${title}</span>
+                        <span class="text-sm text-gray-400 italic w-full sm:w-auto">Saved: ${date}</span>
+                    </div>
+                    <div class="flex space-x-2 flex-shrink-0">
+                        <button onclick="loadAndDisplayReading(${originalIndex})" class="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-md transition-colors">Load</button>
+                        <button onclick="deleteReading(${originalIndex})" class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded-md transition-colors">Delete</button>
+                    </div>
+                `;
+                savedReadingsList.appendChild(readingElement);
+            });
+        };
+        
+        // Loads a reading from storage and displays it in the reading area
+        const loadAndDisplayReading = (index) => {
+            const savedReadings = loadSavedReadings();
+            const reading = savedReadings[index];
+            if (!reading) return;
+
+            // Reconstruct the full spread data with card objects for displaySpread
+            currentSpread = reading.spread.map(item => ({
+                card: findCardByName(item.cardName),
+                position: item.position,
+                isReversed: item.isReversed,
+            }));
+            
+            // Set the correct selector value and display the spread
+            spreadTypeSelector.value = reading.type;
+            currentSpreadType = reading.type; // Update global spread type
+            displaySpread(currentSpread, reading.type);
+            
+            saveReadingBtn.disabled = true;
+            showToast(`Loaded ${reading.type.toUpperCase()} reading from ${new Date(reading.timestamp).toLocaleDateString()}`, 3000);
+        };
+        
+        // Deletes a reading from storage
+        const deleteReading = (index) => {
+            const savedReadings = loadSavedReadings();
+            const deletedReading = savedReadings.splice(index, 1);
+            localStorage.setItem(SAVED_READINGS_KEY, JSON.stringify(savedReadings));
+            renderSavedReadings(); 
+            showToast(`Reading deleted: ${deletedReading[0].spread[0].cardName}...`, 3000);
+        };
+
+
+        // Saves the current reading to localStorage
+        const saveCurrentReading = () => {
+            if (currentSpread.length === 0) {
+                showToast("Please draw a spread first!", 2000);
+                return;
+            }
+
+            saveReadingBtn.disabled = true;
+            saveReadingBtn.textContent = 'Saving...';
+
+            // Prepare simplified data for storage
+            const readingData = currentSpread.map(item => ({
+                cardName: item.card.name,
+                isReversed: item.isReversed,
+                position: item.position // Store position description for context
+            }));
+            
+            const newReading = {
+                timestamp: Date.now(),
+                type: spreadTypeSelector.value, // Save the spread type
+                spread: readingData
+            };
+            
+            try {
+                const savedReadings = loadSavedReadings();
+                savedReadings.push(newReading);
+                localStorage.setItem(SAVED_READINGS_KEY, JSON.stringify(savedReadings));
+                
+                showToast("Reading saved successfully!", 3000);
+                renderSavedReadings(); 
+            } catch (e) {
+                console.error("Error saving document to local storage: ", e);
+                showToast("Error saving reading. Local storage limit reached?", 4000);
+            } finally {
+                saveReadingBtn.textContent = 'Save Reading 💾';
+            }
+        };
+
+        // --- INITIALIZATION ---
+        window.onload = () => {
+            renderCardList(CARDS); 
+            renderSavedReadings(); 
+            populateSpreadGuide(); // Populate the new guide content
+        };
+
+
+        // Export functions to the window object so they can be called from HTML
+        window.showCardDetails = showCardDetails;
+        window.showReadingDetails = showReadingDetails;
+        window.closeDetails = closeDetails;
+        window.filterCards = filterCards;
+        window.drawSpread = drawSpread;
+        window.saveCurrentReading = saveCurrentReading;
+        window.loadAndDisplayReading = loadAndDisplayReading;
+        window.deleteReading = deleteReading;
+        window.toggleLearningMode = toggleLearningMode; 
+        window.toggleSpreadGuide = toggleSpreadGuide; // Export the new function
+    </script>
+</body>
+</html>
+
+
+
